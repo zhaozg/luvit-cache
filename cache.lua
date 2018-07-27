@@ -1,8 +1,8 @@
 -- cache.lua
 -- Simple Cache Server with TTL
 --[[lit-meta
-name = "zhaozg/luvit-cache"
-version = "0.0.1"
+name = "zhaozg/cache"
+version = "0.0.2"
 description = "Simple Cache Server with TTL"
 tags = { "lua", "lit", "luvit", "cache"}
 license = "Apache 2.0"
