@@ -2,7 +2,7 @@
 -- Simple Cache Server with TTL
 --[[lit-meta
 name = "zhaozg/cache"
-version = "0.0.2"
+version = "0.0.3"
 description = "Simple Cache Server with TTL"
 tags = { "lua", "lit", "luvit", "cache"}
 license = "Apache 2.0"
@@ -19,6 +19,7 @@ local type, table = type, table
 -- 缓存对象存储器
 -- 如果 ttl 为number类型, 整数部分表示秒，小数部分表示微秒, 默认为 300
 -- 如果 ttl 为boolean类型，true表示永久存储，需手动清除, false 表示仅读取一次生效
+-- update 表示是否更新缓存对象时间，默认为true, 表示更新
 
 local function s2ms(s)
   return 1000*s
@@ -34,7 +35,7 @@ local function msnow()
 end
 
 local Cache = Emitter:extend()
-function Cache:initialize(ttl, interval)
+function Cache:initialize(ttl, interval, update)
   local vtype = type(ttl)
   if (vtype=='number') then
     self.ttl = ttl
@@ -48,6 +49,7 @@ function Cache:initialize(ttl, interval)
     self.expire = {}
   end
   self.store = {}
+  self.update = update==nil and true or update
 
   if self.ttl then
     self.interval = interval and s2ms(interval) or s2ms(60)
@@ -86,7 +88,7 @@ function Cache:stop()
 end
 
 function Cache:update_time(k, ttl)
-  local ttl = ttl and s2ms(ttl) or self.ttl
+  ttl = ttl and s2ms(ttl) or self.ttl
   local now = msnow()
   if self.expire[k] and self.expire[k] > ttl + now then
     return
@@ -99,7 +101,7 @@ function Cache:get(k)
   if val then
     if self.persist == false then
       self.store[k] = nil
-    elseif(self.ttl) then
+    elseif(self.ttl) and self.update then
       self:update_time(k)
     end
   end
