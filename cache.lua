@@ -2,7 +2,7 @@
 -- Simple Cache Server with TTL
 --[[lit-meta
 name = "zhaozg/cache"
-version = "0.0.4"
+version = "0.0.5"
 description = "Simple Cache Server with TTL"
 tags = { "lua", "lit", "luvit", "cache"}
 license = "Apache 2.0"
@@ -92,13 +92,12 @@ function Cache:print()
     if a.ttl and b.ttl and a.ttl~=b.ttl then
       return tonumber(a.ttl) < tonumber(b.ttl)
     end
-    p(a, b)
     return a.k:lower() < b.k:lower()
   end)
 
-  print(string.format("% 32s: %s ==> %s", 'TTL', 'KEY', 'VAL'))
+  print(string.format("% 10s: %s ==> %s", 'TTL', 'KEY', 'VAL'))
   for _, v in pairs(list) do
-    print(string.format("% 032d: '%s' ==> '%s'", v.ttl, v.k, v.v))
+    print(string.format("% 10d: '%s' ==> '%s'", v.ttl, v.k, v.v))
   end
 end
 
