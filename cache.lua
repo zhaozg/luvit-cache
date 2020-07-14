@@ -2,7 +2,7 @@
 -- Simple Cache Server with TTL
 --[[lit-meta
 name = "zhaozg/cache"
-version = "0.0.5"
+version = "0.0.6"
 description = "Simple Cache Server with TTL"
 tags = { "lua", "lit", "luvit", "cache"}
 license = "Apache 2.0"
@@ -124,9 +124,9 @@ function Cache:stop()
   end
 end
 
-function Cache:update_time(k, ttl)
+function Cache:update_time(k, ttl, now)
   ttl = ttl and s2ms(ttl) or self.ttl
-  local now = msnow()
+  now = now or msnow()
   if self.expire[k] and self.expire[k] > ttl + now then
     return
   end
@@ -139,7 +139,14 @@ function Cache:get(k)
     if self.persist == false then
       self.store[k] = nil
     elseif(self.ttl) and self.update then
-      self:update_time(k)
+      local now = msnow()
+      if self.expire[k] and self.expire[k] < now then
+        -- already expire
+        self.expire[k] = nil
+        self.store[k] = nil
+        return nil
+      end
+      self:update_time(k, nil, now)
     end
   end
   return val
