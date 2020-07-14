@@ -2,7 +2,7 @@
 -- Simple Cache Server with TTL
 --[[lit-meta
 name = "zhaozg/cache"
-version = "0.0.3"
+version = "0.0.4"
 description = "Simple Cache Server with TTL"
 tags = { "lua", "lit", "luvit", "cache"}
 license = "Apache 2.0"
@@ -15,11 +15,6 @@ local timer = require'timer'
 local uv = require'uv'
 
 local type, table = type, table
--------------------------------------------------------------------------------
--- 缓存对象存储器
--- 如果 ttl 为number类型, 整数部分表示秒，小数部分表示微秒, 默认为 300
--- 如果 ttl 为boolean类型，true表示永久存储，需手动清除, false 表示仅读取一次生效
--- update 表示是否更新缓存对象时间，默认为true, 表示更新
 
 local function s2ms(s)
   return 1000*s
@@ -35,6 +30,16 @@ local function msnow()
 end
 
 local Cache = Emitter:extend()
+
+-------------------------------------------------------------------------------
+-- 缓存对象存储器
+-- 如果 ttl 为number类型
+--            整数部分表示秒，小数部分表示微秒, 默认为 300
+-- 如果 ttl 为boolean类型
+--            true表示永久存储，需手动清除, false 表示仅读取一次失效
+-- interval 表示缓冲检查间隔，将会清除 ttl < 0 的缓冲对象，其值必须小于 ttl
+-- update 表示读取时是否更新缓存对象时间，默认为true, 表示更新, false 表示不更新
+
 function Cache:initialize(ttl, interval, update)
   local vtype = type(ttl)
   if (vtype=='number') then
@@ -71,12 +76,45 @@ function Cache:onInterval()
   self:emit('interval', self, expired)
 end
 
-function Cache:start()
+function Cache:print()
+  print(string.format("==== cache: %s ====", tostring(self)))
+  print(string.format("  Total Counts: %d", self:length()))
+
+  local list = {}
+  for k, v in pairs(self.store) do
+    list[#list+1] = {k = k, v = v, ttl = self.expire[k]}
+  end
+
+  table.sort(list, function(a, b)
+    if a==nil or b==nil then
+      return true
+    end
+    if a.ttl and b.ttl and a.ttl~=b.ttl then
+      return tonumber(a.ttl) < tonumber(b.ttl)
+    end
+    p(a, b)
+    return a.k:lower() < b.k:lower()
+  end)
+
+  print(string.format("% 32s: %s ==> %s", 'TTL', 'KEY', 'VAL'))
+  for _, v in pairs(list) do
+    print(string.format("% 032d: '%s' ==> '%s'", v.ttl, v.k, v.v))
+  end
+end
+
+function Cache:start(dbg)
   if self._interval then
     error('already start monitor')
   end
   if self.interval then
-    self._interval = timer.setInterval(self.interval, Cache.onInterval , self)
+    if dbg then
+      self._interval = timer.setInterval(self.interval, function(obj)
+        Cache.onInterval(obj)
+        Cache.print(obj)
+      end, self)
+    else
+      self._interval = timer.setInterval(self.interval, Cache.onInterval , self)
+    end
   end
 end
 
